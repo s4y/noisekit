@@ -140,7 +140,7 @@ class Mixer : public Node {
 		for (auto input : m_inputs) {
 			(*input)(your_buf, l);
 			for (size_t j = 0; j < l; j++) {
-				b[j] += your_buf[j] / m_inputs.size();
+				b[j] += your_buf[j];
 			}
 		}
 		free(your_buf);
