@@ -2,6 +2,7 @@
 
 #include <AudioToolbox/AudioToolbox.h>
 #include <vector>
+#include <math.h>
 
 class Node {
 	public:
@@ -106,6 +107,21 @@ class TriangleNode : public Node {
 			*b = (m_rising ? (m_last += m_step) : (m_last -= m_step));
 			if (*b + m_step > 1) { m_rising = false; }
 			else if (*b - m_step < -1) { m_rising = true; }
+		}
+	}
+};
+
+class SineNode : public Node {
+	double m_state, m_freq, m_sample_rate;
+
+	public:
+	SineNode(double freq, double sample_rate) : m_state(0), m_freq(freq), m_sample_rate(sample_rate) {}
+
+	void operator() (double b[], size_t l) {
+		for (size_t i = 0; i < l; i++) {
+			b[i] = sin(m_state);
+			m_state += (m_freq * 2 * M_PI) / m_sample_rate;
+			if (m_state > (M_PI * 2)) m_state -= M_PI * 2;
 		}
 	}
 };
