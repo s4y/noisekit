@@ -1,22 +1,26 @@
 // - - -
 
 #include <AudioToolbox/AudioToolbox.h>
-#include <functional>
+
+class Node {
+	public:
+	virtual void operator() (double buf[], size_t length) = 0;
+};
 
 class Output {
 
 	static void audio_queue_cb(void *userData, AudioQueueRef queue, AudioQueueBufferRef buf) {
-		reinterpret_cast<Output*>(userData)->processBuffer(buf);
+		static_cast<Output*>(userData)->processBuffer(buf);
 	}
 
-	typedef const std::function<void(AudioQueueBufferRef)> noise_callback_t;
-
-	noise_callback_t m_cb;
 	AudioQueueRef m_queue;
 
 	void processBuffer(AudioQueueBufferRef buffer) {
 
-		m_cb(buffer);
+		(*m_input)(
+			static_cast<double *>(buffer->mAudioData),
+			buffer->mAudioDataBytesCapacity / sizeof(double)
+		);
 
 		buffer->mAudioDataByteSize = buffer->mAudioDataBytesCapacity;
 		AudioQueueEnqueueBuffer(m_queue, buffer, 0, NULL);
@@ -31,7 +35,9 @@ class Output {
 
 	public:
 
-	Output (noise_callback_t cb) : m_cb(cb) {
+	Node *m_input;
+
+	Output (Node *input) : m_input(input) {
 
 		AudioStreamBasicDescription description;
 
@@ -64,7 +70,7 @@ class Output {
 
 };
 
-class PopSource {
+class PopSource : public Node {
 
 	bool state;
 
@@ -72,12 +78,9 @@ class PopSource {
 
 	PopSource() : state(false) {}
 
-	void operator() (AudioQueueBufferRef buf) {
-		uint32_t frames = buf->mAudioDataBytesCapacity / sizeof(double);
-		double *b = (double *)buf->mAudioData;
-
-		for (size_t i = 0; i < frames; i++) {
-			*b++ = state ? 0.5 : 0;
+	void operator() (double buf[], size_t length) {
+		for (size_t i = 0; i < length; i++) {
+			*buf++ = state ? 0.5 : 0;
 		}
 
 		state = !state;
