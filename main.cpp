@@ -1,6 +1,7 @@
 // - - -
 
 #include <AudioToolbox/AudioToolbox.h>
+#include <vector>
 
 class Node {
 	public:
@@ -109,12 +110,40 @@ class TriangleNode : public Node {
 	}
 };
 
+class Mixer : public Node {
+
+	std::vector<Node *> m_inputs;
+
+	public:
+
+	void addInput(Node *node){ m_inputs.push_back(node); }
+
+	void operator() (double b[], size_t l) {
+		double *your_buf = static_cast<double *>(calloc(l, sizeof(double)));
+		memset(b, 0, sizeof(double) * l);
+		for (auto input : m_inputs) {
+			(*input)(your_buf, l);
+			for (size_t j = 0; j < l; j++) {
+				b[j] += your_buf[j] / m_inputs.size();
+			}
+		}
+		free(your_buf);
+	}
+};
+
 int main () {
 
 	Output output;
-	TriangleNode source(1000 / (output.m_sample_rate / 4));
 
-	output.m_input = &source;
+	TriangleNode a(1000 / (output.m_sample_rate / 4));
+	TriangleNode b(500 / (output.m_sample_rate / 4));
+
+	Mixer m;
+
+	m.addInput(&a);
+	m.addInput(&b);
+
+	output.m_input = &m;
 	output.start();
 
 	return 1;
