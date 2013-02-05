@@ -56,10 +56,11 @@ class Output {
 			kCFRunLoopCommonModes, 0, &m_queue
 		), "AudioQueueNewOutput");
 
-		AudioQueueBufferRef buffer;
-		require(AudioQueueAllocateBuffer(m_queue, 2*8*1024, &buffer), "AudioQueueAllocateBuffer");
-
-		processBuffer(buffer);
+		for (size_t i = 0; i < 2; i++) {
+			AudioQueueBufferRef buffer;
+			require(AudioQueueAllocateBuffer(m_queue, 2*8*1024, &buffer), "AudioQueueAllocateBuffer");
+			processBuffer(buffer);
+		}
 	}
 
 	void start() {
