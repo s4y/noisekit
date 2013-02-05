@@ -131,6 +131,22 @@ class Mixer : public Node {
 	}
 };
 
+class Gain : public Node {
+
+	Node *m_input;
+	double m_gain;
+
+	public:
+	Gain(Node *input, double gain) : m_input(input), m_gain(gain) {}
+
+	void operator() (double b[], size_t l) {
+		(*m_input)(b, l);
+		for (size_t i = 0; i < l; i++) {
+			b[i] *= m_gain;
+		}
+	}
+};
+
 int main () {
 
 	Output output;
