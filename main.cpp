@@ -167,13 +167,16 @@ int main () {
 
 	Output output;
 
-	TriangleNode a(1000 / (output.m_sample_rate / 4));
-	TriangleNode b(500 / (output.m_sample_rate / 4));
+	double base_freq = 800;
 
 	Mixer m;
 
-	m.addInput(&a);
-	m.addInput(&b);
+	for (size_t i = 1; i < 15; i++) {
+		m.addInput(new Gain(
+			new SineNode(base_freq * i, output.m_sample_rate),
+			1.0 / (i * i * i * i)
+		));
+	}
 
 	output.m_input = &m;
 	output.start();
