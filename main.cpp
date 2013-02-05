@@ -36,12 +36,13 @@ class Output {
 	public:
 
 	Node *m_input;
+	double m_sample_rate;
 
-	Output (Node *input) : m_input(input) {
+	Output (double sample_rate = 44100) : m_sample_rate(sample_rate) {
 
 		AudioStreamBasicDescription description;
 
-		description.mSampleRate       = 44100;
+		description.mSampleRate       = m_sample_rate;
 		description.mFormatID         = kAudioFormatLinearPCM; 
 		description.mFormatFlags      = kAudioFormatFlagIsFloat;
 		description.mBytesPerPacket   = sizeof(double);
@@ -56,14 +57,15 @@ class Output {
 			kCFRunLoopCommonModes, 0, &m_queue
 		), "AudioQueueNewOutput");
 
+	}
+
+	void start() {
 		for (size_t i = 0; i < 2; i++) {
 			AudioQueueBufferRef buffer;
 			require(AudioQueueAllocateBuffer(m_queue, 2*8*1024, &buffer), "AudioQueueAllocateBuffer");
 			processBuffer(buffer);
 		}
-	}
 
-	void start() {
 		require(AudioQueueStart(m_queue, NULL), "AudioQueueStart");
 		CFRunLoopRun();
 	}
@@ -89,11 +91,30 @@ class PopSource : public Node {
 
 };
 
+class TriangleNode : public Node {
+
+	double m_last, m_step;
+	bool m_rising;
+
+	public:
+
+	TriangleNode(double step) : m_last(0), m_step(step), m_rising(true) {}
+
+	void operator() (double b[], size_t l) {
+		for (size_t i = 0; i < l; ++i, ++b) {
+			*b = (m_rising ? (m_last += m_step) : (m_last -= m_step));
+			if (*b + m_step > 1) { m_rising = false; }
+			else if (*b - m_step < -1) { m_rising = true; }
+		}
+	}
+};
+
 int main () {
 
-	PopSource source;
-	Output output(source);
+	Output output;
+	TriangleNode source(1000 / (output.m_sample_rate / 4));
 
+	output.m_input = &source;
 	output.start();
 
 	return 1;
